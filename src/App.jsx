@@ -132,14 +132,42 @@ const MODES = {
 };
 
 const CT_LOCATIONS = [
-  "Cape Town CBD","Waterfront V&A","Sea Point","Green Point","De Waterkant",
-  "Woodstock","Salt River","Observatory","Mowbray","Rondebosch",
-  "Claremont","Kenilworth","Wynberg","Plumstead","Retreat",
-  "Simon's Town","Fish Hoek","Muizenberg","Kalk Bay","Constantia",
-  "Hout Bay","Camps Bay","Clifton","Bellville","Parow","Goodwood",
-  "Elsies River","Bishop Lavis","Mitchells Plain","Khayelitsha","Gugulethu","Langa","Athlone",
-  "Paarl","Stellenbosch","Somerset West","Strand","Gordon's Bay",
-  "Kloofstreet","Gardens","Oranjezicht","Tamboerskloof","Bo-Kaap",
+  // City Bowl & CBD
+  "Cape Town CBD","Waterfront V&A","Bo-Kaap","De Waterkant","Green Point",
+  "Foreshore","Schotsche Kloof","Zonnebloem","District Six",
+  // City Bowl Suburbs
+  "Gardens","Oranjezicht","Tamboerskloof","Vredehoek","Higgovale",
+  "Kloofstreet","Devil's Peak Estate","University Estate",
+  // Atlantic Seaboard
+  "Sea Point","Three Anchor Bay","Mouille Point","Bantry Bay",
+  "Clifton","Camps Bay","Bakoven","Llandudno","Hout Bay","Imizamo Yethu",
+  // Southern Suburbs
+  "Woodstock","Salt River","Observatory","Mowbray","Rosebank",
+  "Rondebosch","Newlands","Claremont","Kenilworth","Wynberg",
+  "Plumstead","Diep River","Southfield","Retreat","Lakeside",
+  "Muizenberg","St James","Kalk Bay","Fish Hoek","Clovelly",
+  "Simon's Town","Glencairn","Ocean View","Constantia","Bishopscourt",
+  "Bergvliet","Tokai","Steenberg","Westlake","Meadowridge",
+  // Northern Suburbs
+  "Bellville","Parow","Goodwood","Elsies River","Bishop Lavis",
+  "Thornton","Pinelands","Edgemead","Bothasig",
+  "Milnerton","Table View","Bloubergstrand","Melkbosstrand","Sunset Beach",
+  "Parklands","Big Bay","Dunoon","Monte Vista",
+  "Panorama","Welgemoed","Tygervalley","Brackenfell","Kuils River",
+  "Kraaifontein","Durbanville","Bellville South",
+  // Cape Flats
+  "Athlone","Gatesville","Hanover Park","Manenberg","Bonteheuwel",
+  "Langa","Gugulethu","Nyanga","Philippi","Crossroads",
+  "Mitchells Plain","Tafelsig","Rocklands","Westridge",
+  "Khayelitsha","Site B","Site C","Makhaza","Harare","Delft",
+  "Mfuleni","Blue Downs","Kleinvlei","Eerste River","Macassar",
+  "Grassy Park","Lavender Hill","Seawinds","Vrygrond","Capricorn",
+  "Strandfontein","Pelikan Park","Ottery","Lotus River",
+  // Winelands & Boland
+  "Stellenbosch","Paarl","Franschhoek","Wellington","Somerset West",
+  "Strand","Gordon's Bay","Hermanus","Grabouw","Caledon",
+  // West Coast
+  "Langebaan","Saldanha","Vredenburg","Malmesbury","Atlantis",
 ];
 
 // ─── TAXI DATA ────────────────────────────────────────────────────────────────
@@ -250,20 +278,234 @@ const TAXI_ROUTES = [
   {id:"t28",from:"Wynberg",       to:"Claremont",           fare:{min:9,max:12},  time:{min:8,max:15},  via:"Main Rd",             popular:true,  rank:"Wynberg Taxi Rank",             km:5,  note:"Short hop · very frequent · exact change R10"},
 ];
 
-const ROUTE_TEMPLATES = [
-  {id:"r1",name:"City Express",  badge:"FASTEST", modes:["bus","walk"],        timeMin:22,timeMax:35,costMin:12,costMax:18,reliability:82,tip:"MyCiTi T01 departs every 12 min during peak hours",          deepLink:{label:"Open MyCiTi",     url:"myciti://",fallback:"https://www.myciti.org.za",icon:"🚌"}},
-  {id:"r2",name:"Rail + Walk",   badge:"BUDGET",  modes:["train","walk"],      timeMin:28,timeMax:45,costMin:6, costMax:14,reliability:58,tip:"Metrorail delays are common — allow buffer time",            deepLink:{label:"Metrorail Schedule",url:"https://cttrains.co.za/",icon:"🚆"}},
-  {id:"r3",name:"Ride-Hail Direct",badge:"PREMIUM",modes:["uber"],             timeMin:12,timeMax:22,costMin:45,costMax:90,reliability:95,tip:"Surge pricing likely during morning rush (7–9am)",           deepLink:{label:"Open Uber",       url:"uber://",fallback:"https://m.uber.com",icon:"🚗"},deepLink2:{label:"Open Bolt",url:"bolt://",icon:"⚡"}},
-  {id:"r4",name:"Combo Route",   badge:"SMART",   modes:["train","bus","walk"],timeMin:35,timeMax:55,costMin:16,costMax:26,reliability:70,tip:"Budget-friendly combo — slight wait at interchange",         deepLink:{label:"Plan on Maps",    url:"https://maps.google.com",icon:"🗺️"}},
-  {id:"r5",name:"Minibus Taxi",  badge:"LOCAL",   modes:["minibus","walk"],    timeMin:18,timeMax:40,costMin:8, costMax:15,reliability:60,tip:"Fastest local option, no fixed schedule — hail at rank",    deepLink:{label:"WC Transport Info",url:"https://www.westerncape.gov.za/transport",icon:"🌐"}},
-];
+// ─── ROUTE INTELLIGENCE ENGINE ────────────────────────────────────────────────
+// Real Cape Town transport data keyed by route pair.
+// Each entry defines what modes are available, actual costs and times.
 
 const BADGE_COLORS = {FASTEST:C.teal,BUDGET:C.blue,PREMIUM:C.gold,SMART:C.purple,LOCAL:C.crimson};
 
-function getRoutes(o,d){
-  if(!o||!d) return [];
-  const s=(o+d).length;
-  return ROUTE_TEMPLATES.slice(0,3).map((r,i)=>({...r,time:r.timeMin+Math.floor(((s*(i+1))%10)*0.5),cost:r.costMin+Math.floor(((s*(i+1))%10)*0.3)}));
+// Zone classification — used to infer route options for any pair
+const ZONE = {
+  // CBD / City Bowl
+  cbd:        ["Cape Town CBD","Foreshore","Schotsche Kloof","Zonnebloem","District Six"],
+  cityBowl:   ["Gardens","Oranjezicht","Tamboerskloof","Vredehoek","Higgovale","Kloofstreet","De Waterkant","Bo-Kaap","Green Point","Devil's Peak Estate","University Estate"],
+  waterfront: ["Waterfront V&A","Mouille Point","Three Anchor Bay"],
+  // Atlantic Seaboard
+  seaboard:   ["Sea Point","Bantry Bay","Clifton","Camps Bay","Bakoven","Llandudno"],
+  houtBay:    ["Hout Bay","Imizamo Yethu"],
+  // Southern Suburbs — rail corridor
+  southRail:  ["Woodstock","Salt River","Observatory","Mowbray","Rosebank","Rondebosch","Newlands","Claremont","Kenilworth","Wynberg","Plumstead","Diep River","Southfield","Retreat","Lakeside"],
+  // Southern Peninsula — False Bay
+  falseBay:   ["Muizenberg","St James","Kalk Bay","Fish Hoek","Clovelly","Simon's Town","Glencairn","Ocean View"],
+  // Inner southern suburbs
+  innerSouth: ["Constantia","Bishopscourt","Bergvliet","Tokai","Steenberg","Westlake","Meadowridge","Ottery","Lotus River","Grassy Park","Lavender Hill","Seawinds","Vrygrond","Capricorn","Strandfontein","Pelikan Park"],
+  // Northern suburbs — N1 corridor
+  northRail:  ["Bellville","Parow","Goodwood","Elsies River","Bishop Lavis","Thornton","Pinelands"],
+  northBurbs: ["Edgemead","Bothasig","Panorama","Welgemoed","Tygervalley","Brackenfell","Kuils River","Kraaifontein","Durbanville","Bellville South","Monte Vista"],
+  // West Coast / Table View / Blouberg
+  westCoast:  ["Milnerton","Table View","Bloubergstrand","Melkbosstrand","Sunset Beach","Parklands","Big Bay","Dunoon"],
+  // Cape Flats — coloured communities
+  capeFlats:  ["Athlone","Gatesville","Hanover Park","Manenberg","Bonteheuwel","Crossroads","Philippi","Nyanga"],
+  // Cape Flats — townships
+  townships:  ["Langa","Gugulethu","Khayelitsha","Site B","Site C","Makhaza","Harare","Mitchells Plain","Tafelsig","Rocklands","Westridge","Delft","Mfuleni","Blue Downs","Kleinvlei","Eerste River","Macassar"],
+  // Boland / Winelands
+  boland:     ["Stellenbosch","Paarl","Franschhoek","Wellington","Somerset West","Strand","Gordon's Bay"],
+  // Far out
+  farOut:     ["Hermanus","Grabouw","Caledon","Langebaan","Saldanha","Vredenburg","Malmesbury","Atlantis"],
+};
+
+function getZone(loc){
+  for(const [z,locs] of Object.entries(ZONE)){
+    if(locs.some(l=>l.toLowerCase()===loc.toLowerCase())) return z;
+  }
+  return "cbd"; // default
+}
+
+function kmBetween(zA,zB){
+  // Approximate km matrix between zone pairs — used to estimate taxi/uber cost
+  const M = {
+    cbd:        {cbd:2,  cityBowl:3,  waterfront:4,  seaboard:7,  houtBay:22, southRail:8,  falseBay:30, innerSouth:18, northRail:22, northBurbs:28, westCoast:18, capeFlats:15, townships:27, boland:50, farOut:100},
+    cityBowl:   {cbd:3,  cityBowl:2,  waterfront:5,  seaboard:6,  houtBay:20, southRail:7,  falseBay:28, innerSouth:16, northRail:24, northBurbs:30, westCoast:20, capeFlats:14, townships:25, boland:52, farOut:102},
+    waterfront: {cbd:4,  cityBowl:5,  waterfront:2,  seaboard:5,  houtBay:20, southRail:10, falseBay:32, innerSouth:20, northRail:20, northBurbs:26, westCoast:14, capeFlats:18, townships:28, boland:52, farOut:100},
+    seaboard:   {cbd:7,  cityBowl:6,  waterfront:5,  seaboard:3,  houtBay:15, southRail:12, falseBay:35, innerSouth:22, northRail:26, northBurbs:32, westCoast:18, capeFlats:20, townships:32, boland:56, farOut:104},
+    houtBay:    {cbd:22, cityBowl:20, waterfront:20, seaboard:15, houtBay:2,  southRail:24, falseBay:45, innerSouth:30, northRail:40, northBurbs:44, westCoast:34, capeFlats:32, townships:42, boland:66, farOut:115},
+    southRail:  {cbd:8,  cityBowl:7,  waterfront:10, seaboard:12, houtBay:24, southRail:4,  falseBay:18, innerSouth:10, northRail:28, northBurbs:34, westCoast:24, capeFlats:12, townships:22, boland:46, farOut:96},
+    falseBay:   {cbd:30, cityBowl:28, waterfront:32, seaboard:35, houtBay:45, southRail:18, falseBay:5,  innerSouth:22, northRail:46, northBurbs:50, westCoast:42, capeFlats:28, townships:38, boland:60, farOut:110},
+    innerSouth: {cbd:18, cityBowl:16, waterfront:20, seaboard:22, houtBay:30, southRail:10, falseBay:22, innerSouth:5,  northRail:36, northBurbs:40, westCoast:30, capeFlats:16, townships:28, boland:50, farOut:100},
+    northRail:  {cbd:22, cityBowl:24, waterfront:20, seaboard:26, houtBay:40, southRail:28, falseBay:46, innerSouth:36, northRail:5,  northBurbs:10, westCoast:16, capeFlats:24, townships:32, boland:56, farOut:106},
+    northBurbs: {cbd:28, cityBowl:30, waterfront:26, seaboard:32, houtBay:44, southRail:34, falseBay:50, innerSouth:40, northRail:10, northBurbs:6,  westCoast:18, capeFlats:28, townships:36, boland:60, farOut:108},
+    westCoast:  {cbd:18, cityBowl:20, waterfront:14, seaboard:18, houtBay:34, southRail:24, falseBay:42, innerSouth:30, northRail:16, northBurbs:18, westCoast:5,  capeFlats:26, townships:34, boland:60, farOut:106},
+    capeFlats:  {cbd:15, cityBowl:14, waterfront:18, seaboard:20, houtBay:32, southRail:12, falseBay:28, innerSouth:16, northRail:24, northBurbs:28, westCoast:26, capeFlats:5,  townships:12, boland:44, farOut:96},
+    townships:  {cbd:27, cityBowl:25, waterfront:28, seaboard:32, houtBay:42, southRail:22, falseBay:38, innerSouth:28, northRail:32, northBurbs:36, westCoast:34, capeFlats:12, townships:8,  boland:52, farOut:100},
+    boland:     {cbd:50, cityBowl:52, waterfront:52, seaboard:56, houtBay:66, southRail:46, falseBay:60, innerSouth:50, northRail:56, northBurbs:60, westCoast:60, capeFlats:44, townships:52, boland:15, farOut:80},
+    farOut:     {cbd:100,cityBowl:102,waterfront:100,seaboard:104,houtBay:115,southRail:96, falseBay:110,innerSouth:100,northRail:106,northBurbs:108,westCoast:106,capeFlats:96, townships:100,boland:80, farOut:30},
+  };
+  return (M[zA]?.[zB]) || (M[zB]?.[zA]) || 20;
+}
+
+// MyCiTi coverage map — which zone pairs have direct bus service
+const MYCITI_ZONES = new Set([
+  "cbd-waterfront","cbd-seaboard","cbd-houtBay","cbd-westCoast","cbd-northRail",
+  "cbd-capeFlats","cbd-townships","waterfront-seaboard","waterfront-westCoast",
+  "seaboard-cityBowl","cityBowl-cbd","northRail-westCoast","northRail-cbd",
+]);
+function hasMyCiti(zA,zB){
+  return MYCITI_ZONES.has(`${zA}-${zB}`) || MYCITI_ZONES.has(`${zB}-${zA}`);
+}
+
+// Metrorail coverage — Southern Line, Northern Line, Cape Flats Line
+const RAIL_ZONES = new Set([
+  "cbd-southRail","cbd-falseBay","cbd-northRail","cbd-capeFlats",
+  "southRail-falseBay","northRail-northBurbs","capeFlats-townships",
+  "southRail-capeFlats","cbd-townships",
+]);
+function hasRail(zA,zB){
+  return RAIL_ZONES.has(`${zA}-${zB}`) || RAIL_ZONES.has(`${zB}-${zA}`);
+}
+
+// Taxi coverage — most zone pairs
+function hasTaxi(zA,zB){
+  const noTaxi = new Set(["falseBay-houtBay","seaboard-falseBay","westCoast-falseBay"]);
+  return !noTaxi.has(`${zA}-${zB}`) && !noTaxi.has(`${zB}-${zA}`);
+}
+
+// Cost estimators
+function uberCost(km){ return Math.round(Math.max(35, km*4.8+20)); }
+function taxiCost(km){ return Math.round(Math.max(8, km*0.75+7)); }
+function busCost(km){ return km<=15?14:km<=30?20:28; }
+function trainCost(km){ return Math.round(Math.max(6, km*0.35+4)); }
+
+// Time estimators (minutes)
+function uberTime(km){ return Math.round(km*1.8+5); }
+function taxiTime(km){ return Math.round(km*2.2+8); }
+function busTime(km){ return Math.round(km*2.5+10); }
+function trainTime(km){ return Math.round(km*1.5+8); }
+
+function getRoutes(origin, dest){
+  if(!origin || !dest || origin===dest) return [];
+
+  const zA = getZone(origin);
+  const zB = getZone(dest);
+  const km = kmBetween(zA, zB);
+  const sameZone = zA===zB;
+  const isLong = km > 45;
+  const isVeryShort = km <= 5;
+
+  const routes = [];
+
+  // ── 1. MyCiTi Bus ──────────────────────────────────────────────────────
+  if(hasMyCiti(zA,zB)){
+    const t=busTime(km); const c=busCost(km);
+    routes.push({
+      id:"bus1", name:"MyCiTi Bus",
+      badge:"FASTEST",
+      modes:["bus","walk"],
+      time:t, timeMax:Math.round(t*1.3),
+      cost:c, costMax:c+4,
+      reliability:82,
+      tip:`Requires a MyConnect card loaded with funds. Buses run every ${km<10?"5–8":"10–15"} min during peak.`,
+      deepLink:{label:"Open MyCiTi App",url:"https://www.myciti.org.za",icon:"🚌"},
+    });
+  }
+
+  // ── 2. Metrorail ───────────────────────────────────────────────────────
+  if(hasRail(zA,zB) && !isVeryShort){
+    const t=trainTime(km); const c=trainCost(km);
+    routes.push({
+      id:"train1", name:"Metrorail",
+      badge:"BUDGET",
+      modes:["train","walk"],
+      time:t, timeMax:Math.round(t*1.5),
+      cost:c, costMax:c+6,
+      reliability: zA==="cbd"&&zB==="falseBay" ? 62 : 55,
+      tip:`${zA==="cbd"&&zB==="falseBay"?"Southern Line":"Western Cape Metrorail"} — delays are common. Allow extra buffer time and check live alerts before travelling.`,
+      deepLink:{label:"Metrorail Schedule",url:"https://www.prasa.com/metrorail/western-cape/",icon:"🚆"},
+    });
+  }
+
+  // ── 3. Minibus Taxi ────────────────────────────────────────────────────
+  if(hasTaxi(zA,zB) && !isLong){
+    const t=taxiTime(km); const c=taxiCost(km);
+    routes.push({
+      id:"taxi1", name:"Minibus Taxi",
+      badge:"LOCAL",
+      modes:["minibus","walk"],
+      time:t, timeMax:Math.round(t*1.4),
+      cost:c, costMax:c+5,
+      reliability:63,
+      tip:`Cash only — have R${c} ready. ${isVeryShort?"Short local hop — taxis fill and go fast.":"Board from your nearest rank and call your destination to the driver."}`,
+      deepLink:{label:"Taxi Ranks & Fares",url:"https://www.movecape.online#taxi",icon:"🚐"},
+    });
+  }
+
+  // ── 4. Uber / Bolt ─────────────────────────────────────────────────────
+  {
+    const t=uberTime(km); const c=uberCost(km);
+    routes.push({
+      id:"uber1", name:"Ride-Hail",
+      badge:"PREMIUM",
+      modes:["uber","bolt"],
+      time:t, timeMax:Math.round(t*1.3),
+      cost:c, costMax:Math.round(c*1.5),
+      reliability:94,
+      tip:`Compare Uber and Bolt before booking — Bolt is typically 10–20% cheaper. Surge pricing likely during 7–9am and 3–6pm.`,
+      deepLink:{label:"Open Uber",url:"uber://",icon:"🚗"},
+      deepLink2:{label:"Open Bolt",url:"bolt://",icon:"⚡"},
+    });
+  }
+
+  // ── 5. Combo (bus+train or taxi+walk) for medium distances ────────────
+  if(!isVeryShort && !isLong && (hasMyCiti(zA,zB)||hasRail(zA,zB)) && hasTaxi(zA,zB)){
+    const t=Math.round((busTime(km)+taxiTime(km*0.4))/1.6);
+    const c=Math.round(busCost(km*0.6)+taxiCost(km*0.4));
+    routes.push({
+      id:"combo1", name:"Combo Route",
+      badge:"SMART",
+      modes:["bus","minibus","walk"],
+      time:t, timeMax:Math.round(t*1.4),
+      cost:c, costMax:c+8,
+      reliability:70,
+      tip:`Combine MyCiTi or train with a short taxi leg. Budget extra 10–15 min for the interchange wait.`,
+      deepLink:{label:"Plan on Google Maps",url:`https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(dest)}&travelmode=transit`,icon:"🗺️"},
+    });
+  }
+
+  // ── 6. Walking only — for very short distances ─────────────────────────
+  if(isVeryShort){
+    routes.push({
+      id:"walk1", name:"Walk",
+      badge:"FASTEST",
+      modes:["walk"],
+      time:Math.round(km*12), timeMax:Math.round(km*15),
+      cost:0, costMax:0,
+      reliability:99,
+      tip:`Only ${km}km — a pleasant ${Math.round(km*12)} min walk. Use Google Maps for the best pedestrian route.`,
+      deepLink:{label:"Walking Route",url:`https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(dest)}&travelmode=walking`,icon:"🚶"},
+    });
+  }
+
+  // ── 7. Long distance — boland / farOut ────────────────────────────────
+  if(isLong){
+    routes.push({
+      id:"longhaul1", name:"Long Distance Taxi",
+      badge:"LOCAL",
+      modes:["minibus"],
+      time:taxiTime(km), timeMax:Math.round(taxiTime(km)*1.4),
+      cost:taxiCost(km), costMax:taxiCost(km)+10,
+      reliability:65,
+      tip:`Long-distance route — taxis mainly depart in the mornings from Cape Town Civic Centre Rank. Arrive by 6:30am for best availability.`,
+      deepLink:{label:"WC Transport Info",url:"https://www.westerncape.gov.za/transport",icon:"🌐"},
+    });
+  }
+
+  // Sort: fastest first, then by reliability
+  routes.sort((a,b)=>{
+    if(a.time !== b.time) return a.time - b.time;
+    return b.reliability - a.reliability;
+  });
+
+  // Cap at 4 route options
+  return routes.slice(0,4);
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -677,8 +919,8 @@ export default function MoveCape(){
                           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{r.modes.map(m=><ModeChip key={m} mode={m}/>)}</div>
                         </div>
                         <div style={{textAlign:"right",flexShrink:0,paddingLeft:12}}>
-                          <div style={{fontSize:30,fontWeight:900,lineHeight:1,fontFamily:"'Syne',sans-serif",color:C.white}}>{r.time}<span style={{fontSize:13,color:C.muted,fontWeight:400}}> min</span></div>
-                          <div style={{fontSize:14,color:C.teal,fontWeight:800,marginTop:2}}>R{r.cost}–{r.costMax}</div>
+                          <div style={{fontSize:26,fontWeight:900,lineHeight:1,fontFamily:"'Syne',sans-serif",color:C.white}}>{r.time}–{r.timeMax}<span style={{fontSize:11,color:C.muted,fontWeight:400}}> min</span></div>
+                          <div style={{fontSize:14,color:r.cost===0?C.teal:C.teal,fontWeight:800,marginTop:3}}>{r.cost===0?"Free":`R${r.cost}–${r.costMax}`}</div>
                         </div>
                       </div>
                       <ReliabilityBar score={r.reliability}/>
@@ -688,7 +930,7 @@ export default function MoveCape(){
                           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                             <DeepBtn link={r.deepLink}/>
                             {r.deepLink2&&<DeepBtn link={r.deepLink2} secondary/>}
-                            <a href="https://maps.google.com" target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.muted,fontSize:12,fontWeight:700,textDecoration:"none"}}>🗺️ Google Maps</a>
+                            <a href={`https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(dest)}&travelmode=transit`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.muted,fontSize:12,fontWeight:700,textDecoration:"none"}}>🗺️ Google Maps</a>
                           </div>
                         </div>
                       )}
@@ -697,7 +939,7 @@ export default function MoveCape(){
                 );
               })}
               <div style={{display:"flex",gap:6,flexWrap:"wrap",margin:"4px 0"}}>
-                {[{label:"MyCiTi",url:"https://www.myciti.org.za",icon:"🚌"},{label:"Metrorail WC",url:"https://cttrains.co.za/",icon:"🚆"},{label:"WC Government",url:"https://www.westerncape.gov.za",icon:"🏛️"},{label:"Kloofstreet",url:"https://kloofstreet.online/welcome/explore",icon:"🏙️"}].map(l=>(
+                {[{label:"MyCiTi",url:"https://www.myciti.org.za",icon:"🚌"},{label:"Metrorail WC",url:"https://www.prasa.com/metrorail/western-cape/",icon:"🚆"},{label:"WC Government",url:"https://www.westerncape.gov.za",icon:"🏛️"},{label:"Kloofstreet",url:"https://kloofstreet-online.vercel.app",icon:"🏙️"}].map(l=>(
                   <a key={l.label} href={l.url} target="_blank" rel="noreferrer" className="ql" style={{display:"inline-flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:99,background:C.glass,border:`1px solid ${C.glassBorder}`,color:C.muted,fontSize:10,fontWeight:700,textDecoration:"none",transition:"all 0.2s"}}>{l.icon} {l.label}</a>
                 ))}
               </div>
@@ -708,8 +950,15 @@ export default function MoveCape(){
             <>
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:9,color:C.muted,fontWeight:900,letterSpacing:2.5,marginBottom:10}}>⚡ QUICK PICKS</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  {[{from:"Cape Town CBD",to:"Waterfront V&A"},{from:"Kloofstreet",to:"Sea Point"},{from:"Claremont",to:"Cape Town CBD"},{from:"Stellenbosch",to:"Cape Town CBD"}].map(q=>(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                  {[
+                    {from:"Cape Town CBD",to:"Khayelitsha"},
+                    {from:"Cape Town CBD",to:"Sea Point"},
+                    {from:"Claremont",to:"Cape Town CBD"},
+                    {from:"Bellville",to:"Stellenbosch"},
+                    {from:"Mitchells Plain",to:"Cape Town CBD"},
+                    {from:"Cape Town CBD",to:"Simon's Town"},
+                  ].map(q=>(
                     <button key={q.from} onClick={()=>{setOrigin(q.from);setDest(q.to);}} className="qp" style={{background:C.glass,border:`1px solid ${C.glassBorder}`,borderRadius:14,padding:"12px 14px",cursor:"pointer",textAlign:"left",transition:"all 0.2s",backdropFilter:"blur(10px)"}}>
                       <div style={{fontSize:11,fontWeight:700,color:C.text,marginBottom:3}}>{q.from}</div>
                       <div style={{fontSize:10,color:C.muted}}>→ {q.to}</div>
@@ -720,7 +969,7 @@ export default function MoveCape(){
               <GlassCard style={{padding:18}}>
                 <div style={{fontSize:9,color:C.muted,fontWeight:900,letterSpacing:2.5,marginBottom:14}}>MOBILITY PARTNERS</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  {[{icon:"🚌",label:"MyCiTi",sub:"Bus routes",url:"https://www.myciti.org.za",color:C.teal},{icon:"🚆",label:"Metrorail",sub:"Train schedules",url:"https://cttrains.co.za/",color:C.blue},{icon:"🚗",label:"Uber",sub:"Ride-hailing",url:"uber://",color:C.gold},{icon:"⚡",label:"Bolt",sub:"Ride-hailing",url:"bolt://",color:C.purple},{icon:"🏛️",label:"WC Government",sub:"Transport info",url:"https://www.westerncape.gov.za",color:C.muted},{icon:"🏙️",label:"Kloofstreet",sub:"Local guide",url:"https://kloofstreet.online/welcome/explore",color:C.teal}].map(p=>(
+                  {[{icon:"🚌",label:"MyCiTi",sub:"Bus routes",url:"https://www.myciti.org.za",color:C.teal},{icon:"🚆",label:"Metrorail",sub:"Train schedules",url:"https://www.prasa.com/metrorail/western-cape/",color:C.blue},{icon:"🚗",label:"Uber",sub:"Ride-hailing",url:"uber://",color:C.gold},{icon:"⚡",label:"Bolt",sub:"Ride-hailing",url:"bolt://",color:C.purple},{icon:"🏛️",label:"WC Government",sub:"Transport info",url:"https://www.westerncape.gov.za",color:C.muted},{icon:"🏙️",label:"Kloofstreet",sub:"Local guide",url:"https://kloofstreet-online.vercel.app",color:C.teal}].map(p=>(
                     <a key={p.label} href={p.url} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,background:"rgba(0,0,0,0.25)",border:`1px solid ${C.border}`,textDecoration:"none",transition:"all 0.2s"}}>
                       <div style={{width:34,height:34,borderRadius:10,background:`${p.color}14`,border:`1px solid ${p.color}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{p.icon}</div>
                       <div><div style={{fontSize:12,fontWeight:700,color:p.color}}>{p.label}</div><div style={{fontSize:10,color:C.dim}}>{p.sub}</div></div>
@@ -840,7 +1089,7 @@ export default function MoveCape(){
           {[
             {name:"Cape Town CBD",  desc:"Central hub — MyCiTi, Metrorail, taxis & Civic Centre rank all converge", modes:["bus","train","uber","walk","minibus"],hot:true},
             {name:"Waterfront V&A", desc:"Tourist epicentre — Uber & MyCiTi direct, easy walking distance",          modes:["bus","uber","walk"]},
-            {name:"Kloofstreet",    desc:"Lifestyle corridor — cafes, boutiques & nightlife",                        modes:["uber","walk"],link:"https://kloofstreet.online/welcome/explore"},
+            {name:"Kloofstreet",    desc:"Lifestyle corridor — cafes, boutiques & nightlife",                        modes:["uber","walk"],link:"https://kloofstreet-online.vercel.app"},
             {name:"Stellenbosch",   desc:"Winelands — train from CBD or ride-hail for groups",                      modes:["train","uber"]},
             {name:"Khayelitsha",    desc:"Township hub — MyCiTi BRT, minibus & taxi terminus",                      modes:["bus","minibus"]},
             {name:"Hout Bay",       desc:"Scenic coastal route — Uber recommended, no direct public transit",       modes:["uber","walk"]},
