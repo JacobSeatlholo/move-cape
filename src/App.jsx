@@ -1,82 +1,112 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── 🔌 GOOGLE SHEETS CONFIG ─────────────────────────────────────────────────
-// After deploying your Apps Script, paste the Web App URL below.
-// It should look like: https://script.google.com/macros/s/YOUR_ID/exec
-const SHEET_URL = "https://script.google.com/macros/s/AKfycby_9ja7WSbUJhEfGnpOfds-ogP-npAuz1MoAmvYl3ORNMD-sHuaDIPs_NUjW9ZbxiGrWQ/exec";
-const POLL_INTERVAL_MS = 60_000; // refresh every 60 seconds
+// Reads directly from your published Google Sheet as CSV.
+// No Apps Script, no proxy, no CORS issues.
+// Sheet columns: ID | ACTIVE | TYPE | CATEGORY | MESSAGE | STARTS_AT | EXPIRES_AT | PINNED | SOURCE | UPDATED_AT
+const SHEET_ID       = "1EKHNcLODUwM4dXQNI9rTCPpUDtS3xmzBmnDnl2eWJcE";
+const SHEET_TAB      = "Alerts";
+const CSV_URL        = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_TAB}`;
+const POLL_INTERVAL_MS = 60_000;
 
-// Map the color strings from the sheet → actual hex values in the app
 const COLOR_MAP = {
-  teal:    "#00ffcc",
-  blue:    "#4f8eff",
-  crimson: "#ff3b5c",
-  gold:    "#fbbf24",
-  purple:  "#a78bfa",
-  muted:   "#6b7fa3",
+  teal:"#00ffcc", blue:"#4f8eff", crimson:"#ff3b5c",
+  gold:"#fbbf24", purple:"#a78bfa", muted:"#6b7fa3",
+};
+const ICONS_MAP = { warn:"⚠️", info:"ℹ️", ok:"✅", default:"📢" };
+const CAT_COLOR = {
+  bus:"teal", train:"blue", taxi:"crimson",
+  uber:"gold", safety:"crimson", general:"muted",
 };
 
-// Fallback alerts shown while the sheet loads or if fetch fails
+// Properly parse a single CSV line (handles quoted commas)
+function parseCSVLine(line) {
+  const out = []; let cur = "", q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (q && line[i+1] === '"') { cur += '"'; i++; } else q = !q; }
+    else if (c === ',' && !q) { out.push(cur.trim()); cur = ""; }
+    else cur += c;
+  }
+  out.push(cur.trim());
+  return out;
+}
+
+// Parse CSV text → alert objects, respecting ACTIVE, STARTS_AT, EXPIRES_AT
+function parseCSVAlerts(text) {
+  const lines = text.trim().split("\n");
+  if (lines.length < 2) return [];
+  const now = new Date();
+  const alerts = [];
+  for (let i = 1; i < lines.length; i++) {
+    const c = parseCSVLine(lines[i]);
+    const id      = (c[0]||"").trim();
+    const active  = (c[1]||"").toUpperCase() === "TRUE";
+    const message = (c[4]||"").trim();
+    if (!id || !active || !message) continue;
+    const startsAt  = c[5] ? new Date(c[5]) : null;
+    const expiresAt = c[6] ? new Date(c[6]) : null;
+    if (startsAt  && now < startsAt)  continue;
+    if (expiresAt && now > expiresAt) continue;
+    const type     = (c[2]||"info").toLowerCase();
+    const category = (c[3]||"general").toLowerCase();
+    const colorKey = CAT_COLOR[category] || "muted";
+    alerts.push({
+      id, type, category, message,
+      pinned: (c[7]||"").toUpperCase() === "TRUE",
+      source: (c[8]||"MoveCape").trim(),
+      icon:   ICONS_MAP[type] || ICONS_MAP.default,
+      color:  COLOR_MAP[colorKey] || COLOR_MAP.muted,
+    });
+  }
+  alerts.sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0));
+  return alerts;
+}
+
 const FALLBACK_ALERTS = [
-  {id:"f1",icon:"⚠️",type:"warn",category:"train",  color:"gold",   message:"Metrorail: Southern Line delays expected until 14:00",pinned:false,source:"Cached"},
-  {id:"f2",icon:"✅",type:"ok",  category:"bus",    color:"teal",   message:"MyCiTi T01 running on time — 12 min frequency",       pinned:false,source:"Cached"},
-  {id:"f3",icon:"⚠️",type:"warn",category:"uber",   color:"crimson",message:"Uber surge pricing active: CBD → Sea Point (+40%)",  pinned:false,source:"Cached"},
-  {id:"f4",icon:"⚠️",type:"warn",category:"taxi",   color:"gold",   message:"Taxi disruption: Bellville rank — partial service",  pinned:true, source:"Cached"},
+  {id:"f1",icon:"⚠️",type:"warn",category:"train",  color:COLOR_MAP.gold,   message:"Metrorail: Southern Line delays expected until 14:00",pinned:false,source:"Fallback"},
+  {id:"f2",icon:"✅",type:"ok",  category:"bus",    color:COLOR_MAP.teal,   message:"MyCiTi T01 running on time — 12 min frequency",       pinned:false,source:"Fallback"},
+  {id:"f3",icon:"⚠️",type:"warn",category:"uber",   color:COLOR_MAP.crimson,message:"Uber surge pricing active: CBD → Sea Point (+40%)",  pinned:false,source:"Fallback"},
+  {id:"f4",icon:"⚠️",type:"warn",category:"taxi",   color:COLOR_MAP.gold,   message:"Taxi disruption: Bellville rank — partial service",  pinned:true, source:"Fallback"},
 ];
 
 // ─── Hook: useLiveAlerts ──────────────────────────────────────────────────────
 function useLiveAlerts() {
-  const [alerts, setAlerts]       = useState(FALLBACK_ALERTS);
-  const [status, setStatus]       = useState("idle");   // idle | loading | live | error | unconfigured
+  const [alerts,      setAlerts]      = useState(FALLBACK_ALERTS);
+  const [status,      setStatus]      = useState("loading");
   const [lastFetched, setLastFetched] = useState(null);
-  const [countdown, setCountdown] = useState(POLL_INTERVAL_MS / 1000);
-  const timerRef = useRef(null);
-  const countRef = useRef(null);
+  const [countdown,   setCountdown]   = useState(POLL_INTERVAL_MS / 1000);
+  const timer   = useRef(null);
+  const counter = useRef(null);
 
   const fetchAlerts = useCallback(async () => {
-    if (!SHEET_URL || SHEET_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE") {
-      setStatus("unconfigured");
-      return;
-    }
-    setStatus("loading");
     try {
-      // Use no-cors isn't enough to read body, so we use a CORS proxy for
-      // the Apps Script URL. Apps Script "Anyone" deployment supports CORS natively.
-      const res = await fetch(SHEET_URL);
+      // Google Sheets CSV endpoint is public and CORS-friendly — no proxy needed.
+      const res = await fetch(CSV_URL + "&t=" + Date.now()); // cache-bust
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.alerts)) {
-        // Resolve color strings → hex
-        const resolved = data.alerts.map(a => ({
-          ...a,
-          color: COLOR_MAP[a.color] || COLOR_MAP.muted,
-        }));
-        setAlerts(resolved.length > 0 ? resolved : FALLBACK_ALERTS);
-        setStatus("live");
-        setLastFetched(new Date());
-        setCountdown(POLL_INTERVAL_MS / 1000);
-      } else {
-        throw new Error(data.error || "Bad response");
-      }
+      const text = await res.text();
+      const parsed = parseCSVAlerts(text);
+      setAlerts(parsed.length > 0 ? parsed : FALLBACK_ALERTS);
+      setStatus("live");
+      setLastFetched(new Date());
+      setCountdown(POLL_INTERVAL_MS / 1000);
     } catch (err) {
-      console.warn("MoveCape alerts fetch failed:", err.message);
+      console.warn("MoveCape CSV fetch failed:", err.message);
       setStatus("error");
     }
   }, []);
 
-  // Initial fetch + polling
   useEffect(() => {
     fetchAlerts();
-    timerRef.current = setInterval(fetchAlerts, POLL_INTERVAL_MS);
-    return () => clearInterval(timerRef.current);
+    timer.current = setInterval(fetchAlerts, POLL_INTERVAL_MS);
+    return () => clearInterval(timer.current);
   }, [fetchAlerts]);
 
-  // Live countdown ticker
   useEffect(() => {
-    countRef.current = setInterval(() => {
-      setCountdown(c => (c <= 1 ? POLL_INTERVAL_MS / 1000 : c - 1));
+    counter.current = setInterval(() => {
+      setCountdown(c => c <= 1 ? POLL_INTERVAL_MS / 1000 : c - 1);
     }, 1000);
-    return () => clearInterval(countRef.current);
+    return () => clearInterval(counter.current);
   }, []);
 
   return { alerts, status, lastFetched, countdown, refetch: fetchAlerts };
