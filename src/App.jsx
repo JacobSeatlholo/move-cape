@@ -252,7 +252,7 @@ const TAXI_ROUTES = [
 
 const ROUTE_TEMPLATES = [
   {id:"r1",name:"City Express",  badge:"FASTEST", modes:["bus","walk"],        timeMin:22,timeMax:35,costMin:12,costMax:18,reliability:82,tip:"MyCiTi T01 departs every 12 min during peak hours",          deepLink:{label:"Open MyCiTi",     url:"myciti://",fallback:"https://www.myciti.org.za",icon:"🚌"}},
-  {id:"r2",name:"Rail + Walk",   badge:"BUDGET",  modes:["train","walk"],      timeMin:28,timeMax:45,costMin:6, costMax:14,reliability:58,tip:"Metrorail delays are common — allow buffer time",            deepLink:{label:"Metrorail Schedule",url:"https://www.prasa.com/metrorail/western-cape/",icon:"🚆"}},
+  {id:"r2",name:"Rail + Walk",   badge:"BUDGET",  modes:["train","walk"],      timeMin:28,timeMax:45,costMin:6, costMax:14,reliability:58,tip:"Metrorail delays are common — allow buffer time",            deepLink:{label:"Metrorail Schedule",url:"https://cttrains.co.za/",icon:"🚆"}},
   {id:"r3",name:"Ride-Hail Direct",badge:"PREMIUM",modes:["uber"],             timeMin:12,timeMax:22,costMin:45,costMax:90,reliability:95,tip:"Surge pricing likely during morning rush (7–9am)",           deepLink:{label:"Open Uber",       url:"uber://",fallback:"https://m.uber.com",icon:"🚗"},deepLink2:{label:"Open Bolt",url:"bolt://",icon:"⚡"}},
   {id:"r4",name:"Combo Route",   badge:"SMART",   modes:["train","bus","walk"],timeMin:35,timeMax:55,costMin:16,costMax:26,reliability:70,tip:"Budget-friendly combo — slight wait at interchange",         deepLink:{label:"Plan on Maps",    url:"https://maps.google.com",icon:"🗺️"}},
   {id:"r5",name:"Minibus Taxi",  badge:"LOCAL",   modes:["minibus","walk"],    timeMin:18,timeMax:40,costMin:8, costMax:15,reliability:60,tip:"Fastest local option, no fixed schedule — hail at rank",    deepLink:{label:"WC Transport Info",url:"https://www.westerncape.gov.za/transport",icon:"🌐"}},
@@ -697,7 +697,7 @@ export default function MoveCape(){
                 );
               })}
               <div style={{display:"flex",gap:6,flexWrap:"wrap",margin:"4px 0"}}>
-                {[{label:"MyCiTi",url:"https://www.myciti.org.za",icon:"🚌"},{label:"Metrorail WC",url:"https://www.prasa.com/metrorail/western-cape/",icon:"🚆"},{label:"WC Government",url:"https://www.westerncape.gov.za",icon:"🏛️"},{label:"Kloofstreet",url:"https://kloofstreet-online.vercel.app",icon:"🏙️"}].map(l=>(
+                {[{label:"MyCiTi",url:"https://www.myciti.org.za",icon:"🚌"},{label:"Metrorail WC",url:"https://cttrains.co.za/",icon:"🚆"},{label:"WC Government",url:"https://www.westerncape.gov.za",icon:"🏛️"},{label:"Kloofstreet",url:"https://kloofstreet.online/welcome/explore",icon:"🏙️"}].map(l=>(
                   <a key={l.label} href={l.url} target="_blank" rel="noreferrer" className="ql" style={{display:"inline-flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:99,background:C.glass,border:`1px solid ${C.glassBorder}`,color:C.muted,fontSize:10,fontWeight:700,textDecoration:"none",transition:"all 0.2s"}}>{l.icon} {l.label}</a>
                 ))}
               </div>
@@ -720,7 +720,7 @@ export default function MoveCape(){
               <GlassCard style={{padding:18}}>
                 <div style={{fontSize:9,color:C.muted,fontWeight:900,letterSpacing:2.5,marginBottom:14}}>MOBILITY PARTNERS</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  {[{icon:"🚌",label:"MyCiTi",sub:"Bus routes",url:"https://www.myciti.org.za",color:C.teal},{icon:"🚆",label:"Metrorail",sub:"Train schedules",url:"https://www.prasa.com/metrorail/western-cape/",color:C.blue},{icon:"🚗",label:"Uber",sub:"Ride-hailing",url:"uber://",color:C.gold},{icon:"⚡",label:"Bolt",sub:"Ride-hailing",url:"bolt://",color:C.purple},{icon:"🏛️",label:"WC Government",sub:"Transport info",url:"https://www.westerncape.gov.za",color:C.muted},{icon:"🏙️",label:"Kloofstreet",sub:"Local guide",url:"https://kloofstreet-online.vercel.app",color:C.teal}].map(p=>(
+                  {[{icon:"🚌",label:"MyCiTi",sub:"Bus routes",url:"https://www.myciti.org.za",color:C.teal},{icon:"🚆",label:"Metrorail",sub:"Train schedules",url:"https://cttrains.co.za/",color:C.blue},{icon:"🚗",label:"Uber",sub:"Ride-hailing",url:"uber://",color:C.gold},{icon:"⚡",label:"Bolt",sub:"Ride-hailing",url:"bolt://",color:C.purple},{icon:"🏛️",label:"WC Government",sub:"Transport info",url:"https://www.westerncape.gov.za",color:C.muted},{icon:"🏙️",label:"Kloofstreet",sub:"Local guide",url:"https://kloofstreet.online/welcome/explore",color:C.teal}].map(p=>(
                     <a key={p.label} href={p.url} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,background:"rgba(0,0,0,0.25)",border:`1px solid ${C.border}`,textDecoration:"none",transition:"all 0.2s"}}>
                       <div style={{width:34,height:34,borderRadius:10,background:`${p.color}14`,border:`1px solid ${p.color}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{p.icon}</div>
                       <div><div style={{fontSize:12,fontWeight:700,color:p.color}}>{p.label}</div><div style={{fontSize:10,color:C.dim}}>{p.sub}</div></div>
@@ -840,7 +840,7 @@ export default function MoveCape(){
           {[
             {name:"Cape Town CBD",  desc:"Central hub — MyCiTi, Metrorail, taxis & Civic Centre rank all converge", modes:["bus","train","uber","walk","minibus"],hot:true},
             {name:"Waterfront V&A", desc:"Tourist epicentre — Uber & MyCiTi direct, easy walking distance",          modes:["bus","uber","walk"]},
-            {name:"Kloofstreet",    desc:"Lifestyle corridor — cafes, boutiques & nightlife",                        modes:["uber","walk"],link:"https://kloofstreet-online.vercel.app"},
+            {name:"Kloofstreet",    desc:"Lifestyle corridor — cafes, boutiques & nightlife",                        modes:["uber","walk"],link:"https://kloofstreet.online/welcome/explore"},
             {name:"Stellenbosch",   desc:"Winelands — train from CBD or ride-hail for groups",                      modes:["train","uber"]},
             {name:"Khayelitsha",    desc:"Township hub — MyCiTi BRT, minibus & taxi terminus",                      modes:["bus","minibus"]},
             {name:"Hout Bay",       desc:"Scenic coastal route — Uber recommended, no direct public transit",       modes:["uber","walk"]},
