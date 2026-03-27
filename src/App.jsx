@@ -1,4 +1,86 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+
+// ─── 🔌 GOOGLE SHEETS CONFIG ─────────────────────────────────────────────────
+// After deploying your Apps Script, paste the Web App URL below.
+// It should look like: https://script.google.com/macros/s/YOUR_ID/exec
+const SHEET_URL = "https://script.google.com/macros/s/AKfycby_9ja7WSbUJhEfGnpOfds-ogP-npAuz1MoAmvYl3ORNMD-sHuaDIPs_NUjW9ZbxiGrWQ/exec";
+const POLL_INTERVAL_MS = 60_000; // refresh every 60 seconds
+
+// Map the color strings from the sheet → actual hex values in the app
+const COLOR_MAP = {
+  teal:    "#00ffcc",
+  blue:    "#4f8eff",
+  crimson: "#ff3b5c",
+  gold:    "#fbbf24",
+  purple:  "#a78bfa",
+  muted:   "#6b7fa3",
+};
+
+// Fallback alerts shown while the sheet loads or if fetch fails
+const FALLBACK_ALERTS = [
+  {id:"f1",icon:"⚠️",type:"warn",category:"train",  color:"gold",   message:"Metrorail: Southern Line delays expected until 14:00",pinned:false,source:"Cached"},
+  {id:"f2",icon:"✅",type:"ok",  category:"bus",    color:"teal",   message:"MyCiTi T01 running on time — 12 min frequency",       pinned:false,source:"Cached"},
+  {id:"f3",icon:"⚠️",type:"warn",category:"uber",   color:"crimson",message:"Uber surge pricing active: CBD → Sea Point (+40%)",  pinned:false,source:"Cached"},
+  {id:"f4",icon:"⚠️",type:"warn",category:"taxi",   color:"gold",   message:"Taxi disruption: Bellville rank — partial service",  pinned:true, source:"Cached"},
+];
+
+// ─── Hook: useLiveAlerts ──────────────────────────────────────────────────────
+function useLiveAlerts() {
+  const [alerts, setAlerts]       = useState(FALLBACK_ALERTS);
+  const [status, setStatus]       = useState("idle");   // idle | loading | live | error | unconfigured
+  const [lastFetched, setLastFetched] = useState(null);
+  const [countdown, setCountdown] = useState(POLL_INTERVAL_MS / 1000);
+  const timerRef = useRef(null);
+  const countRef = useRef(null);
+
+  const fetchAlerts = useCallback(async () => {
+    if (!SHEET_URL || SHEET_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE") {
+      setStatus("unconfigured");
+      return;
+    }
+    setStatus("loading");
+    try {
+      // Use no-cors isn't enough to read body, so we use a CORS proxy for
+      // the Apps Script URL. Apps Script "Anyone" deployment supports CORS natively.
+      const res = await fetch(SHEET_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.alerts)) {
+        // Resolve color strings → hex
+        const resolved = data.alerts.map(a => ({
+          ...a,
+          color: COLOR_MAP[a.color] || COLOR_MAP.muted,
+        }));
+        setAlerts(resolved.length > 0 ? resolved : FALLBACK_ALERTS);
+        setStatus("live");
+        setLastFetched(new Date());
+        setCountdown(POLL_INTERVAL_MS / 1000);
+      } else {
+        throw new Error(data.error || "Bad response");
+      }
+    } catch (err) {
+      console.warn("MoveCape alerts fetch failed:", err.message);
+      setStatus("error");
+    }
+  }, []);
+
+  // Initial fetch + polling
+  useEffect(() => {
+    fetchAlerts();
+    timerRef.current = setInterval(fetchAlerts, POLL_INTERVAL_MS);
+    return () => clearInterval(timerRef.current);
+  }, [fetchAlerts]);
+
+  // Live countdown ticker
+  useEffect(() => {
+    countRef.current = setInterval(() => {
+      setCountdown(c => (c <= 1 ? POLL_INTERVAL_MS / 1000 : c - 1));
+    }, 1000);
+    return () => clearInterval(countRef.current);
+  }, []);
+
+  return { alerts, status, lastFetched, countdown, refetch: fetchAlerts };
+}
 
 const C = {
   void:"#050810",glass:"rgba(255,255,255,0.04)",glassBorder:"rgba(255,255,255,0.08)",glassHover:"rgba(255,255,255,0.07)",
@@ -364,7 +446,7 @@ function TaxiTab(){
 }
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
-export default function App() {
+export default function MoveCape(){
   const [tab,setTab]=useState("plan");
   const [origin,setOrigin]=useState("");
   const [dest,setDest]=useState("");
@@ -383,12 +465,7 @@ export default function App() {
   };
   const swap=()=>{const t=origin;setOrigin(dest);setDest(t);setRoutes([]);};
 
-  const ALERTS=[
-    {id:1,icon:"⚠️",msg:"Metrorail: Southern Line delays expected until 14:00",time:"Just now",  color:C.gold  },
-    {id:2,icon:"✅",msg:"MyCiTi T01 running on time — 12 min frequency",      time:"10 min ago",color:C.teal  },
-    {id:3,icon:"🚗",msg:"Uber surge: CBD → Sea Point (+40%)",                 time:"25 min ago",color:C.crimson},
-    {id:4,icon:"🚐",msg:"Taxi disruption: Bellville rank — partial service",  time:"1 hr ago",  color:C.gold  },
-  ];
+  const { alerts:ALERTS, status:alertStatus, lastFetched, countdown, refetch } = useLiveAlerts();
 
   const TABS=[
     {id:"plan",   sym:"◎",label:"Plan"},
@@ -582,31 +659,90 @@ export default function App() {
       {/* ══ ALERTS ══ */}
       {tab==="alerts"&&(
         <div style={{padding:16,position:"relative",zIndex:1,animation:"fadeIn 0.3s ease"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div><div style={{fontSize:22,fontWeight:900,fontFamily:"'Syne',sans-serif"}}>Live Alerts</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>Cape Town transit · crowd-sourced</div></div>
-            <div style={{padding:"5px 12px",borderRadius:99,background:C.tealDim,border:`1px solid ${C.tealBorder}`,color:C.teal,fontSize:11,fontWeight:900}}>{ALERTS.length} active</div>
-          </div>
-          {ALERTS.map((a,i)=>(
-            <GlassCard key={a.id} style={{padding:"14px 16px",marginBottom:10}}>
-              <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                <div style={{width:38,height:38,borderRadius:11,flexShrink:0,background:`${a.color}14`,border:`1px solid ${a.color}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{a.icon}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:500,marginBottom:5,lineHeight:1.5}}>{a.msg}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:5,height:5,borderRadius:"50%",background:a.color,animation:i===0?"dotPulse 1s infinite":"none"}}/><span style={{fontSize:10,color:C.dim,fontWeight:700}}>{a.time}</span></div>
-                </div>
+
+          {/* Header */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+            <div>
+              <div style={{fontSize:22,fontWeight:900,fontFamily:"'Syne',sans-serif"}}>Live Alerts</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:2}}>Cape Town transit · auto-refreshing</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5}}>
+              <div style={{padding:"5px 12px",borderRadius:99,background:C.tealDim,border:`1px solid ${C.tealBorder}`,color:C.teal,fontSize:11,fontWeight:900}}>
+                {ALERTS.length} active
               </div>
-            </GlassCard>
-          ))}
+              <button onClick={refetch} style={{background:"transparent",border:"none",color:C.dim,fontSize:10,cursor:"pointer",fontWeight:600,letterSpacing:0.3}}>
+                ↻ {alertStatus==="loading" ? "Refreshing…" : `${countdown}s`}
+              </button>
+            </div>
+          </div>
+
+          {/* Status banner */}
+          {alertStatus==="unconfigured"&&(
+            <div style={{background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:12,padding:"12px 16px",marginBottom:14,fontSize:12,color:C.gold,lineHeight:1.6}}>
+              <div style={{fontWeight:800,marginBottom:4}}>⚙️ Sheet not connected yet</div>
+              Paste your Apps Script URL into <code style={{background:"rgba(0,0,0,0.3)",padding:"1px 5px",borderRadius:4}}>SHEET_URL</code> in the code to enable live alerts. Showing fallback data below.
+            </div>
+          )}
+          {alertStatus==="error"&&(
+            <div style={{background:"rgba(255,59,92,0.08)",border:`1px solid ${C.crimson}33`,borderRadius:12,padding:"12px 16px",marginBottom:14,fontSize:12,color:C.crimson,lineHeight:1.6}}>
+              <div style={{fontWeight:800,marginBottom:2}}>⚠️ Could not reach Google Sheet</div>
+              Showing last known alerts. Will retry in {countdown}s.
+            </div>
+          )}
+          {alertStatus==="live"&&lastFetched&&(
+            <div style={{background:C.tealDim,border:`1px solid ${C.tealBorder}`,borderRadius:12,padding:"9px 14px",marginBottom:14,fontSize:11,color:C.teal,display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:C.teal,boxShadow:`0 0 6px ${C.teal}`,animation:"dotPulse 1.5s infinite"}}/>
+              Live from Google Sheets · updated {lastFetched.toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"})} · next in {countdown}s
+            </div>
+          )}
+          {alertStatus==="loading"&&ALERTS.length===0&&(
+            <div style={{textAlign:"center",padding:"32px 20px",color:C.muted,fontSize:13}}>
+              <div style={{fontSize:28,marginBottom:8,animation:"dotPulse 0.8s infinite"}}>📡</div>
+              Connecting to Google Sheets…
+            </div>
+          )}
+
+          {/* Alert cards */}
+          {ALERTS.map((a,i)=>{
+            const hex = typeof a.color==="string" && a.color.startsWith("#") ? a.color : (COLOR_MAP[a.color]||C.muted);
+            return(
+              <GlassCard key={a.id} style={{padding:"14px 16px",marginBottom:10,border:`1px solid ${a.pinned?C.tealBorder:C.glassBorder}`}}>
+                <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                  <div style={{width:38,height:38,borderRadius:11,flexShrink:0,background:`${hex}14`,border:`1px solid ${hex}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{a.icon}</div>
+                  <div style={{flex:1}}>
+                    {a.pinned&&<div style={{fontSize:9,color:C.teal,fontWeight:900,letterSpacing:1.5,marginBottom:4}}>📌 PINNED</div>}
+                    <div style={{fontSize:13,fontWeight:500,marginBottom:6,lineHeight:1.5}}>{a.message}</div>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{width:5,height:5,borderRadius:"50%",background:hex,animation:i===0?"dotPulse 1s infinite":"none"}}/>
+                        <span style={{fontSize:10,color:C.dim,fontWeight:700}}>{a.source||"MoveCape"}</span>
+                      </div>
+                      <span style={{fontSize:9,color:C.dim,padding:"2px 7px",borderRadius:99,background:C.glass,border:`1px solid ${C.border}`,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase"}}>{a.category}</span>
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+            );
+          })}
+
           <div style={{height:10}}/>
+
+          {/* Report panel */}
           <GlassCard style={{padding:18}}>
-            <div style={{fontSize:15,fontWeight:900,fontFamily:"'Syne',sans-serif",marginBottom:6}}>📢 Report an Issue</div>
-            <div style={{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}}>Help commuters by reporting delays, safety issues, or service changes.</div>
+            <div style={{fontSize:15,fontWeight:900,fontFamily:"'Syne',sans-serif",marginBottom:4}}>📢 Report an Issue</div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}}>Help commuters by reporting delays, safety issues, or service changes. Reports are reviewed before going live.</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[{icon:"🚌",label:"Bus delay",color:C.teal},{icon:"🚆",label:"Train issue",color:C.blue},{icon:"🚐",label:"Taxi disruption",color:C.crimson},{icon:"⚠️",label:"Safety alert",color:C.gold}].map(r=>(
-                <button key={r.label} style={{background:`${r.color}0d`,border:`1px solid ${r.color}22`,borderRadius:12,padding:"11px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:8,color:r.color,fontSize:12,fontWeight:800}}>
+              {[{icon:"🚌",label:"Bus delay",color:C.teal,cat:"bus"},{icon:"🚆",label:"Train issue",color:C.blue,cat:"train"},{icon:"🚐",label:"Taxi disruption",color:C.crimson,cat:"taxi"},{icon:"⚠️",label:"Safety alert",color:C.gold,cat:"safety"}].map(r=>(
+                <button key={r.label} onClick={()=>alert(`Report submitted: ${r.label}\n\nThis will be wired to your Google Sheet via the Apps Script POST endpoint.`)}
+                  style={{background:`${r.color}0d`,border:`1px solid ${r.color}22`,borderRadius:12,padding:"11px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:8,color:r.color,fontSize:12,fontWeight:800}}>
                   <span style={{fontSize:16}}>{r.icon}</span>{r.label}
                 </button>
               ))}
+            </div>
+            <div style={{marginTop:12,padding:"10px 12px",borderRadius:10,background:"rgba(0,0,0,0.2)",border:`1px solid ${C.border}`}}>
+              <div style={{fontSize:10,color:C.dim,lineHeight:1.6}}>
+                💡 To submit crowd reports directly to your sheet, wire the buttons to the Apps Script POST endpoint in <code style={{background:"rgba(0,0,0,0.3)",padding:"1px 4px",borderRadius:3}}>movecape-apps-script.js</code>
+              </div>
             </div>
           </GlassCard>
           <BHFooter/>
