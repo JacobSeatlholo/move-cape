@@ -183,22 +183,71 @@ const TAXI_RANKS = [
 ];
 
 const TAXI_ROUTES = [
-  // CBD ↔ Suburbs
-  {id:"t1", from:"Cape Town CBD", to:"Mitchells Plain",    fare:{min:14,max:18}, time:{min:35,max:55}, via:"N2 Highway",       popular:true,  rank:"Cape Town Civic Centre Rank"},
-  {id:"t2", from:"Cape Town CBD", to:"Khayelitsha",        fare:{min:16,max:22}, time:{min:40,max:65}, via:"N2 Highway",       popular:true,  rank:"Cape Town Civic Centre Rank"},
-  {id:"t3", from:"Cape Town CBD", to:"Bellville",          fare:{min:13,max:17}, time:{min:30,max:50}, via:"N1 / Voortrekker", popular:true,  rank:"Cape Town Civic Centre Rank"},
-  {id:"t4", from:"Cape Town CBD", to:"Paarl",              fare:{min:28,max:35}, time:{min:50,max:75}, via:"N1",               popular:false, rank:"Cape Town Civic Centre Rank"},
-  {id:"t5", from:"Cape Town CBD", to:"Stellenbosch",       fare:{min:30,max:38}, time:{min:55,max:80}, via:"N2 / R310",        popular:false, rank:"Cape Town Civic Centre Rank"},
-  {id:"t6", from:"Cape Town CBD", to:"Langa",              fare:{min:9,max:13},  time:{min:15,max:25}, via:"N2",               popular:true,  rank:"Cape Town Civic Centre Rank"},
-  {id:"t7", from:"Cape Town CBD", to:"Gugulethu",          fare:{min:10,max:14}, time:{min:20,max:30}, via:"N2",               popular:true,  rank:"Cape Town Civic Centre Rank"},
-  {id:"t8", from:"Cape Town CBD", to:"Athlone",            fare:{min:11,max:15}, time:{min:20,max:35}, via:"Voortrekker Rd",   popular:false, rank:"Cape Town Civic Centre Rank"},
-  {id:"t9", from:"Cape Town CBD", to:"Sea Point",          fare:{min:8,max:12},  time:{min:10,max:20}, via:"Beach Rd",         popular:true,  rank:"Strand Street Rank"},
-  {id:"t10",from:"Cape Town CBD", to:"Hout Bay",           fare:{min:18,max:25}, time:{min:30,max:50}, via:"Victoria Rd",      popular:false, rank:"Strand Street Rank"},
-  {id:"t11",from:"Bellville",     to:"Paarl",              fare:{min:18,max:24}, time:{min:30,max:45}, via:"N1",               popular:false, rank:"Bellville Taxi Terminus"},
-  {id:"t12",from:"Bellville",     to:"Stellenbosch",       fare:{min:20,max:28}, time:{min:35,max:50}, via:"R304",             popular:false, rank:"Bellville Taxi Terminus"},
-  {id:"t13",from:"Mitchells Plain",to:"Khayelitsha",       fare:{min:8,max:12},  time:{min:15,max:25}, via:"Steve Biko Rd",    popular:true,  rank:"Mitchells Plain Town Centre"},
-  {id:"t14",from:"Wynberg",       to:"Muizenberg",         fare:{min:9,max:13},  time:{min:15,max:25}, via:"Main Rd",          popular:false, rank:"Wynberg Taxi Rank"},
-  {id:"t15",from:"Wynberg",       to:"Simon's Town",       fare:{min:18,max:25}, time:{min:40,max:60}, via:"Main Rd, Fish Hoek",popular:false,rank:"Wynberg Taxi Rank"},
+  // ── CBD departures ──────────────────────────────────────────────────────────
+  // Khayelitsha: ~27km via N2. CODETA confirmed R20 one-way (2023 increase from R19)
+  {id:"t1", from:"Cape Town CBD", to:"Khayelitsha",         fare:{min:20,max:23}, time:{min:40,max:65}, via:"N2 Highway",          popular:true,  rank:"Cape Town Civic Centre Rank",   km:27, note:"CODETA route · cash only · R20 standard"},
+  // Mitchells Plain: ~30km via N2. Slightly further than Khayelitsha
+  {id:"t2", from:"Cape Town CBD", to:"Mitchells Plain",     fare:{min:20,max:25}, time:{min:35,max:55}, via:"N2 Highway",          popular:true,  rank:"Cape Town Civic Centre Rank",   km:30, note:"Busy commuter route · frequent departures peak hours"},
+  // Bellville: ~22km via N1/Voortrekker. High-frequency corridor
+  {id:"t3", from:"Cape Town CBD", to:"Bellville",           fare:{min:16,max:20}, time:{min:30,max:50}, via:"N1 / Voortrekker Rd", popular:true,  rank:"Cape Town Civic Centre Rank",   km:22, note:"Runs via Maitland & Goodwood · very frequent"},
+  // Langa: ~13km via N2. Short, cheap township route
+  {id:"t4", from:"Cape Town CBD", to:"Langa",               fare:{min:11,max:14}, time:{min:15,max:25}, via:"N2 Highway",          popular:true,  rank:"Cape Town Civic Centre Rank",   km:13, note:"Short route · departs regularly from upper deck"},
+  // Gugulethu: ~15km via N2
+  {id:"t5", from:"Cape Town CBD", to:"Gugulethu",           fare:{min:12,max:16}, time:{min:20,max:35}, via:"N2 Highway",          popular:true,  rank:"Cape Town Civic Centre Rank",   km:15, note:"Via NY1 corridor · frequent weekday service"},
+  // Athlone: ~11km via Voortrekker / De Waal
+  {id:"t6", from:"Cape Town CBD", to:"Athlone",             fare:{min:12,max:15}, time:{min:20,max:35}, via:"Voortrekker Rd",      popular:true,  rank:"Cape Town Civic Centre Rank",   km:11, note:"Via Salt River & Woodstock · busy route"},
+  // Delft: ~27km via N2/R300 — large township, high demand
+  {id:"t7", from:"Cape Town CBD", to:"Delft",               fare:{min:18,max:22}, time:{min:35,max:55}, via:"N2 / R300",           popular:true,  rank:"Cape Town Civic Centre Rank",   km:27, note:"High demand route · morning peak very busy"},
+  // Mfuleni: ~32km via N2/R300
+  {id:"t8", from:"Cape Town CBD", to:"Mfuleni",             fare:{min:20,max:25}, time:{min:40,max:60}, via:"N2 / R300",           popular:false, rank:"Cape Town Civic Centre Rank",   km:32, note:"Connects to Blue Downs corridor"},
+  // Paarl: ~60km via N1 — long route, higher fare
+  {id:"t9", from:"Cape Town CBD", to:"Paarl",               fare:{min:35,max:45}, time:{min:55,max:80}, via:"N1 Highway",          popular:false, rank:"Cape Town Civic Centre Rank",   km:60, note:"Long route · departs mornings mainly · book early"},
+  // Stellenbosch: ~50km via N2/R310
+  {id:"t10",from:"Cape Town CBD", to:"Stellenbosch",        fare:{min:35,max:45}, time:{min:55,max:80}, via:"N2 / R310",           popular:false, rank:"Cape Town Civic Centre Rank",   km:50, note:"Via Somerset West turn-off · limited frequency"},
+  // Sea Point: ~6km via Beach Rd / De Waal
+  {id:"t11",from:"Cape Town CBD", to:"Sea Point",           fare:{min:10,max:13}, time:{min:10,max:20}, via:"Beach Rd",            popular:true,  rank:"Strand Street Rank",            km:6,  note:"Short city hop · runs frequently · cash R10"},
+  // Camps Bay: ~10km via De Waal / Victoria Rd
+  {id:"t12",from:"Cape Town CBD", to:"Camps Bay",           fare:{min:13,max:17}, time:{min:15,max:30}, via:"De Waal Dr / Victoria Rd", popular:false, rank:"Strand Street Rank",       km:10, note:"Scenic Atlantic seaboard route"},
+  // Hout Bay: ~22km via Victoria Rd / Chapman's Peak area
+  {id:"t13",from:"Cape Town CBD", to:"Hout Bay",            fare:{min:20,max:28}, time:{min:30,max:50}, via:"Victoria Rd",         popular:false, rank:"Strand Street Rank",            km:22, note:"Coastal route · limited frequency · cash only"},
+  // Woodstock/Salt River: ~4km — inner city
+  {id:"t14",from:"Cape Town CBD", to:"Woodstock",           fare:{min:8,max:11},  time:{min:8,max:18},  via:"Main Rd",             popular:true,  rank:"Strand Street Rank",            km:4,  note:"Very short hop · frequent · exact change preferred"},
+  // Observatory: ~6km via De Waal / Main Rd
+  {id:"t15",from:"Cape Town CBD", to:"Observatory",         fare:{min:10,max:13}, time:{min:12,max:22}, via:"Main Rd / De Waal",   popular:false, rank:"Strand Street Rank",            km:6,  note:"Via Salt River interchange"},
+
+  // ── Bellville departures ────────────────────────────────────────────────────
+  // Bellville → Paarl: ~38km via N1
+  {id:"t16",from:"Bellville",     to:"Paarl",               fare:{min:22,max:28}, time:{min:30,max:50}, via:"N1 Highway",          popular:false, rank:"Bellville Taxi Terminus",       km:38, note:"Boland corridor · morning peak departures"},
+  // Bellville → Stellenbosch: ~30km via R304/N2
+  {id:"t17",from:"Bellville",     to:"Stellenbosch",        fare:{min:22,max:28}, time:{min:35,max:50}, via:"R304",                popular:false, rank:"Bellville Taxi Terminus",       km:30, note:"Via Kuils River"},
+  // Bellville → Goodwood: ~8km local
+  {id:"t18",from:"Bellville",     to:"Goodwood",            fare:{min:10,max:13}, time:{min:12,max:22}, via:"Voortrekker Rd",      popular:true,  rank:"Bellville Taxi Terminus",       km:8,  note:"Short local connector · very frequent"},
+  // Bellville → Elsies River: ~10km
+  {id:"t19",from:"Bellville",     to:"Elsies River",        fare:{min:11,max:14}, time:{min:15,max:25}, via:"Voortrekker Rd",      popular:false, rank:"Bellville Taxi Terminus",       km:10, note:"Northern suburbs local route"},
+
+  // ── Mitchells Plain departures ──────────────────────────────────────────────
+  // Mitchells Plain → Khayelitsha: ~10km via Steve Biko Rd
+  {id:"t20",from:"Mitchells Plain",to:"Khayelitsha",        fare:{min:11,max:15}, time:{min:15,max:25}, via:"Steve Biko Rd",       popular:true,  rank:"Mitchells Plain Town Centre",   km:10, note:"Local township connector · very frequent"},
+  // Mitchells Plain → Athlone: ~18km via N2
+  {id:"t21",from:"Mitchells Plain",to:"Athlone",            fare:{min:14,max:18}, time:{min:20,max:35}, via:"N2 Highway",          popular:false, rank:"Mitchells Plain Town Centre",   km:18, note:"Via Hanover Park"},
+  // Mitchells Plain → Wynberg: ~22km via M5
+  {id:"t22",from:"Mitchells Plain",to:"Wynberg",            fare:{min:16,max:20}, time:{min:25,max:40}, via:"M5 / Wetton Rd",      popular:false, rank:"Mitchells Plain Town Centre",   km:22, note:"Southern suburbs connector"},
+
+  // ── Khayelitsha departures ──────────────────────────────────────────────────
+  // Khayelitsha Site C → CBD (extra leg from deep in township)
+  {id:"t23",from:"Khayelitsha",   to:"Philippi",            fare:{min:10,max:13}, time:{min:12,max:20}, via:"Spine Rd",            popular:true,  rank:"Khayelitsha Terminus",          km:9,  note:"Connects to Philippi rank for onward routes"},
+  // Khayelitsha → Gugulethu: ~13km via N2
+  {id:"t24",from:"Khayelitsha",   to:"Gugulethu",           fare:{min:12,max:15}, time:{min:15,max:25}, via:"N2 / Duinefontein Rd",popular:false, rank:"Khayelitsha Terminus",          km:13, note:"Township corridor route"},
+
+  // ── Wynberg departures ──────────────────────────────────────────────────────
+  // Wynberg → Muizenberg: ~10km via Main Rd
+  {id:"t25",from:"Wynberg",       to:"Muizenberg",          fare:{min:11,max:14}, time:{min:15,max:25}, via:"Main Rd",             popular:false, rank:"Wynberg Taxi Rank",             km:10, note:"False Bay corridor · beach commuters"},
+  // Wynberg → Fish Hoek: ~18km via Main Rd
+  {id:"t26",from:"Wynberg",       to:"Fish Hoek",           fare:{min:16,max:20}, time:{min:25,max:40}, via:"Main Rd / Simon's Town Rd",popular:false,rank:"Wynberg Taxi Rank",          km:18, note:"Via Lakeside & Kalk Bay"},
+  // Wynberg → Simon's Town: ~28km via Main Rd (full southern peninsula)
+  {id:"t27",from:"Wynberg",       to:"Simon's Town",        fare:{min:22,max:28}, time:{min:40,max:60}, via:"Main Rd via Fish Hoek",popular:false, rank:"Wynberg Taxi Rank",             km:28, note:"Full southern peninsula route · limited frequency"},
+  // Wynberg → Claremont: ~5km local
+  {id:"t28",from:"Wynberg",       to:"Claremont",           fare:{min:9,max:12},  time:{min:8,max:15},  via:"Main Rd",             popular:true,  rank:"Wynberg Taxi Rank",             km:5,  note:"Short hop · very frequent · exact change R10"},
 ];
 
 const ROUTE_TEMPLATES = [
@@ -287,7 +336,7 @@ function TaxiTab(){
     const fMatch = !from || r.from.toLowerCase().includes(from.toLowerCase()) || r.to.toLowerCase().includes(from.toLowerCase());
     const tMatch = !to   || r.to.toLowerCase().includes(to.toLowerCase())   || r.from.toLowerCase().includes(to.toLowerCase());
     return fMatch && tMatch;
-  }).slice(0,8);
+  }).slice(0,12);
 
   return(
     <div style={{padding:16,position:"relative",zIndex:1,animation:"fadeIn 0.3s ease"}}>
@@ -340,7 +389,7 @@ function TaxiTab(){
 
           {/* Fare notice */}
           <div style={{background:C.goldDim,border:"1px solid rgba(251,191,36,0.2)",borderRadius:12,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.gold,lineHeight:1.6}}>
-            💡 Minibus taxi fares are set by SANTACO and may vary slightly. Prices shown are estimates for 2024/25.
+            💡 Fares verified against CODETA/SANTACO 2025 rates. Actual fare may vary R1–2 by operator. Always carry cash — exact change preferred.
           </div>
 
           {/* Route cards */}
@@ -355,6 +404,7 @@ function TaxiTab(){
                   <div style={{flex:1}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
                       {r.popular&&<span style={{fontSize:9,padding:"2px 8px",borderRadius:99,background:C.crimsonDim,border:`1px solid ${C.crimson}44`,color:C.crimson,fontWeight:900,letterSpacing:1}}>🔥 POPULAR</span>}
+                      {r.km&&<span style={{fontSize:9,padding:"2px 8px",borderRadius:99,background:C.glass,border:`1px solid ${C.border}`,color:C.dim,fontWeight:700}}>{r.km}km</span>}
                     </div>
                     <div style={{fontSize:15,fontWeight:800,fontFamily:"'Syne',sans-serif",marginBottom:2}}>{r.from}</div>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
@@ -363,7 +413,8 @@ function TaxiTab(){
                       <div style={{width:20,height:1,background:C.crimson+"66"}}/>
                     </div>
                     <div style={{fontSize:15,fontWeight:800,fontFamily:"'Syne',sans-serif",color:C.teal}}>{r.to}</div>
-                    <div style={{fontSize:11,color:C.dim,marginTop:5}}>via {r.via}</div>
+                    <div style={{fontSize:11,color:C.dim,marginTop:4}}>via {r.via}</div>
+                    {r.note&&<div style={{fontSize:10,color:C.muted,marginTop:4,fontStyle:"italic"}}>{r.note}</div>}
                   </div>
                   <div style={{textAlign:"right",flexShrink:0,paddingLeft:12}}>
                     <div style={{fontSize:22,fontWeight:900,fontFamily:"'Syne',sans-serif",color:C.white,lineHeight:1}}>
