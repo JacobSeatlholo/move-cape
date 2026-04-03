@@ -1363,7 +1363,7 @@ function TaxiTab(){
 // To enable live data, set your key below:
 const AVIATIONSTACK_KEY = ""; // ← Paste your key here e.g. "abc123def456"
 const CPT_IATA = "CPT";
-const PROXY_BASE = AVIATIONSTACK_KEY
+const PROXY_BASE = 3bca3f91fd4ea3c18e7918db8759ce97
   ? `https://api.allorigins.win/get?url=${encodeURIComponent("http://api.aviationstack.com/v1/flights")}`
   : null;
 
