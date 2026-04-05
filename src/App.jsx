@@ -1878,7 +1878,7 @@ export default function MoveCape(){
                 );
               })}
               <div style={{display:"flex",gap:6,flexWrap:"wrap",margin:"4px 0"}}>
-                {[{label:"MyCiTi",url:"https://www.myciti.org.za",icon:"🚌"},{label:"CT Trains",url:"https://cttrains.co.za",icon:"🚆"},{label:"WC Government",url:"https://www.westerncape.gov.za",icon:"🏛️"},{label:"Kloofstreet",url:"https://kloofstreet.online/welcome",icon:"🏙️"}].map(l=>(
+                {[{label:"MyCiTi",url:"https://www.myciti.org.za",icon:"🚌"},{label:"CT Trains",url:"https://cttrains.co.za",icon:"🚆"},{label:"WC Government",url:"https://www.westerncape.gov.za",icon:"🏛️"},{label:"Kloofstreet",url:"https://www.kloofstreet.online",icon:"🏙️"}].map(l=>(
                   <a key={l.label} href={l.url} target="_blank" rel="noreferrer" className="ql" style={{display:"inline-flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:99,background:C.glass,border:`1px solid ${C.glassBorder}`,color:C.muted,fontSize:10,fontWeight:700,textDecoration:"none",transition:"all 0.2s"}}>{l.icon} {l.label}</a>
                 ))}
               </div>
@@ -1908,7 +1908,7 @@ export default function MoveCape(){
               <GlassCard style={{padding:18}}>
                 <div style={{fontSize:9,color:C.muted,fontWeight:900,letterSpacing:2.5,marginBottom:14}}>MOBILITY PARTNERS</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  {[{icon:"🚌",label:"MyCiTi",sub:"Bus routes",url:"https://www.myciti.org.za",color:C.teal},{icon:"🚆",label:"CT Trains",sub:"Train schedules",url:"https://cttrains.co.za",color:C.blue},{icon:"🚗",label:"Uber",sub:"Ride-hailing",url:"uber://",color:C.gold},{icon:"⚡",label:"Bolt",sub:"Ride-hailing",url:"bolt://",color:C.purple},{icon:"🏛️",label:"WC Government",sub:"Transport info",url:"https://www.westerncape.gov.za",color:C.muted},{icon:"🏙️",label:"Kloofstreet",sub:"Local guide",url:"https://kloofstreet.online/welcome",color:C.teal}].map(p=>(
+                  {[{icon:"🚌",label:"MyCiTi",sub:"Bus routes",url:"https://www.myciti.org.za",color:C.teal},{icon:"🚆",label:"CT Trains",sub:"Train schedules",url:"https://cttrains.co.za",color:C.blue},{icon:"🚗",label:"Uber",sub:"Ride-hailing",url:"uber://",color:C.gold},{icon:"⚡",label:"Bolt",sub:"Ride-hailing",url:"bolt://",color:C.purple},{icon:"🏛️",label:"WC Government",sub:"Transport info",url:"https://www.westerncape.gov.za",color:C.muted},{icon:"🏙️",label:"Kloofstreet",sub:"Local guide",url:"https://www.kloofstreet.online",color:C.teal}].map(p=>(
                     <a key={p.label} href={p.url} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,background:"rgba(0,0,0,0.25)",border:`1px solid ${C.border}`,textDecoration:"none",transition:"all 0.2s"}}>
                       <div style={{width:34,height:34,borderRadius:10,background:`${p.color}14`,border:`1px solid ${p.color}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{p.icon}</div>
                       <div><div style={{fontSize:12,fontWeight:700,color:p.color}}>{p.label}</div><div style={{fontSize:10,color:C.dim}}>{p.sub}</div></div>
@@ -2072,7 +2072,7 @@ export default function MoveCape(){
           {[
             {name:"Cape Town CBD",   desc:"The main hub — MyCiTi, Metrorail, Civic Centre taxi rank & Uber all converge here",           modes:["bus","train","uber","walk","minibus"],hot:true},
             {name:"Waterfront V&A",  desc:"Cape Town's tourist epicentre — MyCiTi T01, Uber & walk from CBD",                            modes:["bus","uber","walk"]},
-            {name:"Kloofstreet",     desc:"Lifestyle corridor — cafes, boutiques, bars & rooftop restaurants",                           modes:["uber","walk"],link:"https://kloofstreet.online/welcome"},
+            {name:"Kloofstreet",     desc:"Lifestyle corridor — cafes, boutiques, bars & rooftop restaurants",                           modes:["uber","walk"],link:"https://www.kloofstreet.online"},
             {name:"Sea Point",       desc:"Atlantic Seaboard strip — taxi from CBD R10, MyCiTi T01 or Uber",                             modes:["bus","minibus","uber","walk"]},
             {name:"Camps Bay",       desc:"Beach strip & restaurants — taxi or Uber from CBD, no direct train",                          modes:["minibus","uber","walk"]},
             {name:"Stellenbosch",    desc:"Winelands hub — taxi or ride-hail from CBD · Metrorail also serves the area",                 modes:["train","minibus","uber"]},
